@@ -1,0 +1,35 @@
+server.port: 8080
+
+spring:
+  application.name: post-service
+  datasource:
+    url: jdbc:h2:file:~/algaposts-post-service-db;CASE_INSENSITIVE_IDENTIFIERS=TRUE;
+    username: sa
+    password: 123
+    driverClassName: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      settings.web-allow-others: true
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  web:
+    resources:
+      add-mappings: false
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: rabbitmq
+    password: rabbitmq
+    listener:
+      simple:
+        prefetch: 4
+        retry:
+          enabled: true
+          initial-interval: 10s
+          max-interval: 20s
+          multiplier: 2
+          max-attempts: 3
