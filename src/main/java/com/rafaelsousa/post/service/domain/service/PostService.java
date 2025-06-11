@@ -1,17 +1,18 @@
 package com.rafaelsousa.post.service.domain.service;
 
 import com.rafaelsousa.post.service.api.exception.ResourceNotFoundException;
-import com.rafaelsousa.post.service.api.model.PostInput;
 import com.rafaelsousa.post.service.api.model.PostData;
+import com.rafaelsousa.post.service.api.model.PostInput;
 import com.rafaelsousa.post.service.api.model.PostSummaryOutput;
+import com.rafaelsousa.post.service.api.model.TextProcessorData;
 import com.rafaelsousa.post.service.domain.model.Post;
 import com.rafaelsousa.post.service.domain.repository.PostRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -24,15 +25,20 @@ public class PostService {
     private final PostRepository postRepository;
     private final RabbitTemplate rabbitTemplate;
 
+    @SuppressWarnings("java:S112")
     @Transactional
     public PostData create(PostInput input) {
         Post post = Post.convertToDomain(input);
-        post = postRepository.saveAndFlush(post);
 
-        PostData postData = PostData.convertToModel(post);
-        rabbitTemplate.convertAndSend(FANOUT_EXCHANGE_PROCESS_TEXT, FANOUT_ROUTING_KEY, postData);
+        TextProcessorData textProcessorData = TextProcessorData.builder()
+                .postId(post.getId())
+                .postBody(post.getBody())
+                .build();
+        rabbitTemplate.convertAndSend(FANOUT_EXCHANGE_PROCESS_TEXT, FANOUT_ROUTING_KEY, textProcessorData);
 
-        return postData;
+        postRepository.save(post);
+
+        return PostData.convertToModel(post);
     }
 
     public PostData findOrFail(UUID postId) {

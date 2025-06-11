@@ -12,14 +12,12 @@ import java.util.Map;
 
 @Configuration
 public class RabbitMQConfig {
-    private static final String POST_PROCESSING_PREFIX_QUEUE = "text-processor-service.post-processing.v1";
-    public static final String POST_PROCESSING_QUEUE = POST_PROCESSING_PREFIX_QUEUE + ".q";
-    public static final String POST_PROCESSING_DEAD_LETTER_QUEUE = POST_PROCESSING_PREFIX_QUEUE + ".dlq";
-
     private static final String POST_PROCESSING_RESULT_PREFIX_QUEUE = "post-service.post-processing-result.v1";
     public static final String POST_PROCESSING_RESULT_QUEUE = POST_PROCESSING_RESULT_PREFIX_QUEUE + ".q";
+    public static final String POST_PROCESSING_RESULT_DEAD_LETTER_QUEUE = POST_PROCESSING_RESULT_PREFIX_QUEUE + ".dlq";
 
-    public static final String FANOUT_EXCHANGE_PROCESS_TEXT = "text-processor.process-text.v1.e";
+    public static final String FANOUT_EXCHANGE_PROCESSING_RESULT = POST_PROCESSING_RESULT_PREFIX_QUEUE + ".e";
+    public static final String FANOUT_EXCHANGE_PROCESS_TEXT = "text-processor-service.post-processing.v1.e";
 
     public static final String FANOUT_ROUTING_KEY = ""; // Fanout exchanges do not use routing keys
 
@@ -34,24 +32,30 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue queueTextProcessorService() {
+    public Queue queuePostService() {
         Map<String, Object> args = Map.of(
                 "x-dead-letter-exchange", "",
-                "x-dead-letter-routing-key", POST_PROCESSING_DEAD_LETTER_QUEUE
+                "x-dead-letter-routing-key", POST_PROCESSING_RESULT_DEAD_LETTER_QUEUE
         );
 
-        return QueueBuilder.durable(POST_PROCESSING_QUEUE)
+        return QueueBuilder.durable(POST_PROCESSING_RESULT_QUEUE)
                 .withArguments(args)
                 .build();
     }
 
     @Bean
-    public Queue deadLetterQueueTextProcessorService() {
-        return QueueBuilder.durable(POST_PROCESSING_DEAD_LETTER_QUEUE).build();
+    public Queue deadLetterQueuePostService() {
+        return QueueBuilder.durable(POST_PROCESSING_RESULT_DEAD_LETTER_QUEUE).build();
     }
 
     @Bean
-    public FanoutExchange exchangeTextProcessorService() {
-        return ExchangeBuilder.fanoutExchange(FANOUT_EXCHANGE_PROCESS_TEXT).build();
+    public Binding bindingPostService() {
+        return BindingBuilder.bind(queuePostService())
+                .to(exchangePostService());
+    }
+
+    @Bean
+    public FanoutExchange exchangePostService() {
+        return ExchangeBuilder.fanoutExchange(FANOUT_EXCHANGE_PROCESSING_RESULT).build();
     }
 }

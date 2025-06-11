@@ -1,6 +1,7 @@
 package com.rafaelsousa.post.service.api.infra.rabbitmq;
 
 import com.rafaelsousa.post.service.api.model.PostData;
+import com.rafaelsousa.post.service.api.model.TextResultData;
 import com.rafaelsousa.post.service.domain.service.PostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +19,16 @@ public class RabbitMQListener {
 
     @SuppressWarnings("java:S112")
     @RabbitListener(queues = POST_PROCESSING_RESULT_QUEUE, concurrency = "2-3")
-    public void handleTextProcessorService(@Payload PostData postData) {
-        log.info("Received post processing result: {}", postData);
+    public void handleTextProcessorService(@Payload TextResultData textResultData) {
+        log.info("Received post processing result: {}", textResultData);
 
-        if (postData.getTitle().equalsIgnoreCase("Text update failure test")) {
-            throw new RuntimeException(String.format("Failed to persist updated post with ID: %s", postData.getId()));
+        if (textResultData.getWordCount().equals(7L)) {
+            throw new RuntimeException(String.format("Failed to update post with ID: %s", textResultData.getPostId()));
         }
+
+        PostData postData = postService.findOrFail(textResultData.getPostId());
+        postData.setWordCount(textResultData.getWordCount());
+        postData.setCalculatedValue(textResultData.getCalculatedValue());
 
         postService.updatePostWithProcessingResult(postData);
     }
